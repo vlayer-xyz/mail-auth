@@ -19,7 +19,7 @@ use crate::{
     dkim::{verify::Verifier, Canonicalization},
     ArcOutput, AuthenticatedMessage, DkimResult, Error, Resolver,
 };
-
+use crate::common::resolve::Resolve;
 use super::{ChainValidation, Set};
 
 impl Resolver {

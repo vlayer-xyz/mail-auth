@@ -14,7 +14,7 @@ use std::{
 };
 
 use crate::{Error, Resolver, SpfOutput, SpfResult};
-
+use crate::common::resolve::Resolve;
 use super::{Macro, Mechanism, Qualifier, Spf, Variables};
 
 #[allow(clippy::iter_skip_zero)]
@@ -34,7 +34,7 @@ impl Resolver {
                 host_domain,
                 &format!("postmaster@{helo_domain}"),
             )
-            .await
+                .await
         } else {
             SpfOutput::new(helo_domain.to_string()).with_result(SpfResult::None)
         }
@@ -55,7 +55,7 @@ impl Resolver {
             host_domain,
             sender,
         )
-        .await
+            .await
     }
 
     /// Verifies both the SPF EHLO and MAIL FROM identities
@@ -274,9 +274,9 @@ impl Resolver {
                                     {
                                         matches = record == &target_addr
                                             || record
-                                                .strip_suffix('.')
-                                                .unwrap_or(record.as_str())
-                                                .ends_with(&target_sub_addr);
+                                            .strip_suffix('.')
+                                            .unwrap_or(record.as_str())
+                                            .ends_with(&target_sub_addr);
                                         if matches {
                                             break;
                                         }
@@ -532,7 +532,6 @@ impl HasValidLabels for &str {
 #[cfg(test)]
 #[allow(unused)]
 mod test {
-
     use std::{
         fs,
         net::{IpAddr, Ipv4Addr, Ipv6Addr},

@@ -8,17 +8,15 @@
  * except according to those terms.
  */
 
-use std::time::SystemTime;
-
 use crate::{
     common::{
         base32::Base32Writer,
         headers::Writer,
         verify::{DomainKey, VerifySignature},
     },
-    is_within_pct, AuthenticatedMessage, DkimOutput, DkimResult, Error, Resolver,
+    is_within_pct, AuthenticatedMessage, DkimOutput, DkimResult, Error,
 };
-
+use crate::common::resolve::Resolve;
 use super::{
     Atps, DomainKeyReport, Flag, HashAlgorithm, Signature, RR_DNS, RR_EXPIRATION, RR_OTHER,
     RR_SIGNATURE, RR_VERIFICATION,
@@ -27,14 +25,12 @@ use super::{
 pub struct DkimVerifier {}
 
 impl DkimVerifier {
+    // TODO replace with argument
     fn current_timestamp() -> u64 {
-        SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
+        1667843664
     }
 
-    pub async fn verify_dkim<'x>(resolver: &Resolver, message: &'x AuthenticatedMessage<'x>) -> Vec<DkimOutput<'x>> {
+    pub async fn verify_dkim<'x, R: Resolve>(resolver: &R, message: &'x AuthenticatedMessage<'x>) -> Vec<DkimOutput<'x>> {
         let now = Self::current_timestamp();
 
         let mut output = Vec::with_capacity(message.dkim_headers.len());
@@ -383,11 +379,7 @@ mod test {
         time::{Duration, Instant},
     };
 
-    use crate::{
-        common::{parse::TxtRecordParser, verify::DomainKey},
-        dkim::verify::Verifier,
-        AuthenticatedMessage, DkimResult, Resolver,
-    };
+    use crate::{common::{parse::TxtRecordParser, verify::DomainKey}, dkim::verify::Verifier, AuthenticatedMessage, DkimResult, Resolver, Txt};
     use crate::dkim::verify::DkimVerifier;
 
     #[ignore]
@@ -411,6 +403,53 @@ mod test {
             let message = AuthenticatedMessage::parse(raw_message.as_bytes()).unwrap();
 
             let dkim = DkimVerifier::verify_dkim(&resolver, &message).await;
+
+            assert_eq!(dkim.last().unwrap().result(), &DkimResult::Pass);
+        }
+    }
+
+    use std::future::{ready, Ready};
+    use std::sync::Arc;
+    use crate::common::resolve::Resolve;
+    use crate::common::resolver::{IntoFqdn, UnwrapTxtRecord};
+
+    struct MockResolver {
+        pub dns_records: String,
+    }
+
+    impl Resolve for MockResolver {
+        async fn txt_lookup<'x, T: TxtRecordParser + Into<Txt> + UnwrapTxtRecord>(
+            &self,
+            _key: impl IntoFqdn<'x>,
+        ) -> Result<Arc<T>, super::Error> {
+            Ok(Arc::new(T::parse(self.dns_records.as_bytes())?))
+        }
+    }
+
+    #[test]
+    fn dkim_verify_sync() {
+        let mut test_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_dir.push("resources");
+        test_dir.push("dkim");
+
+        for file_name in fs::read_dir(&test_dir).unwrap() {
+            let file_name = file_name.unwrap().path();
+            /*if !file_name.to_str().unwrap().contains("002") {
+                continue;
+            }*/
+            println!("DKIM verifying {}", file_name.to_str().unwrap());
+
+            let test = String::from_utf8(fs::read(&file_name).unwrap()).unwrap();
+            let (dns_records, raw_message) = test.split_once("\n\n").unwrap();
+            let resolver = MockResolver {
+                dns_records: dns_records.to_string(),
+            };
+            let raw_message = raw_message.replace('\n', "\r\n");
+            let message = AuthenticatedMessage::parse(raw_message.as_bytes()).unwrap();
+
+            let future = DkimVerifier::verify_dkim(&resolver, &message);
+            let dkim = futures::executor::block_on(future);
+
 
             assert_eq!(dkim.last().unwrap().result(), &DkimResult::Pass);
         }

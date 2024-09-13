@@ -3,7 +3,7 @@ name = "mail-auth"
 description = "DKIM, ARC, SPF and DMARC library for Rust"
 version = "0.5.0"
 edition = "2021"
-authors = [ "Stalwart Labs <hello@stalw.art>"]
+authors = ["Stalwart Labs <hello@stalw.art>"]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/stalwartlabs/mail-auth"
 homepage = "https://github.com/stalwartlabs/mail-auth"
@@ -40,7 +40,7 @@ sha2 = { version = "0.10.6", features = ["oid"], optional = true }
 hickory-resolver = { version = "0.24", features = ["dns-over-rustls", "dnssec-ring"] }
 zip = "2.1.1"
 rand = { version = "0.8.5", optional = true }
-
+futures = { version = "0.3.30", features = ["executor"] }
 [dev-dependencies]
 tokio = { version = "1.16", features = ["net", "io-util", "time", "rt-multi-thread", "macros"] }
 rustls-pemfile = "2"

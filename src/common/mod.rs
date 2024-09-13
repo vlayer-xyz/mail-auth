@@ -19,6 +19,7 @@ pub mod message;
 pub mod parse;
 pub mod resolver;
 pub mod verify;
+pub(crate) mod resolve;
 
 impl From<Error> for IprevResult {
     fn from(err: Error) -> Self {

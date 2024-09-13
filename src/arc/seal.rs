@@ -314,7 +314,7 @@ mod test {
         pk: impl SigningKey<Hasher=Sha256>,
     ) -> String {
         let message = AuthenticatedMessage::parse(raw_message.as_bytes()).unwrap();
-        let dkim_result = DkimVerifier::verify_dkim(&resolver, &message).await;
+        let dkim_result = DkimVerifier::verify_dkim(resolver, &message).await;
         let arc_result = resolver.verify_arc(&message).await;
         assert!(
             matches!(arc_result.result(), DkimResult::Pass | DkimResult::None),
