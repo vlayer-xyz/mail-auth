@@ -187,6 +187,7 @@ mod test {
         common::{parse::TxtRecordParser, verify::DomainKey},
         AuthenticatedMessage, DkimResult, Resolver,
     };
+    use crate::dkim::verify::DkimVerifier;
 
     #[tokio::test]
     async fn arc_verify() {
@@ -210,7 +211,7 @@ mod test {
             let arc = resolver.verify_arc(&message).await;
             assert_eq!(arc.result(), &DkimResult::Pass);
 
-            let dkim = resolver.verify_dkim(&message).await;
+            let dkim = DkimVerifier::verify_dkim(&resolver, &message).await;
             assert!(dkim.iter().any(|o| o.result() == &DkimResult::Pass));
         }
     }

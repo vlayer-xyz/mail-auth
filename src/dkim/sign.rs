@@ -39,7 +39,7 @@ impl<T: SigningKey> DkimSigner<T, Done> {
     /// Signs a chained message.
     pub fn sign_chained<'x>(
         &self,
-        chunks: impl Iterator<Item = &'x [u8]>,
+        chunks: impl Iterator<Item=&'x [u8]>,
     ) -> crate::Result<Signature> {
         self.sign_stream(
             ChainedHeaderIterator::new(chunks),
@@ -122,19 +122,20 @@ pub mod test {
         dkim::{Atps, Canonicalization, DkimSigner, DomainKeyReport, HashAlgorithm, Signature},
         AuthenticatedMessage, DkimOutput, DkimResult, Resolver,
     };
+    use crate::dkim::verify::DkimVerifier;
 
     const RSA_PRIVATE_KEY: &str = include_str!("../../resources/rsa-private.pem");
 
     const RSA_PUBLIC_KEY: &str = concat!(
-        "v=DKIM1; t=s; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ",
-        "8AMIIBCgKCAQEAv9XYXG3uK95115mB4nJ37nGeNe2CrARm",
-        "1agrbcnSk5oIaEfMZLUR/X8gPzoiNHZcfMZEVR6bAytxUh",
-        "c5EvZIZrjSuEEeny+fFd/cTvcm3cOUUbIaUmSACj0dL2/K",
-        "wW0LyUaza9z9zor7I5XdIl1M53qVd5GI62XBB76FH+Q0bW",
-        "PZNkT4NclzTLspD/MTpNCCPhySM4Kdg5CuDczTH4aNzyS0",
-        "TqgXdtw6A4Sdsp97VXT9fkPW9rso3lrkpsl/9EQ1mR/DWK",
-        "6PBmRfIuSFuqnLKY6v/z2hXHxF7IoojfZLa2kZr9Aed4l9",
-        "WheQOTA19k5r2BmlRw/W9CrgCBo0Sdj+KQIDAQAB",
+    "v=DKIM1; t=s; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ",
+    "8AMIIBCgKCAQEAv9XYXG3uK95115mB4nJ37nGeNe2CrARm",
+    "1agrbcnSk5oIaEfMZLUR/X8gPzoiNHZcfMZEVR6bAytxUh",
+    "c5EvZIZrjSuEEeny+fFd/cTvcm3cOUUbIaUmSACj0dL2/K",
+    "wW0LyUaza9z9zor7I5XdIl1M53qVd5GI62XBB76FH+Q0bW",
+    "PZNkT4NclzTLspD/MTpNCCPhySM4Kdg5CuDczTH4aNzyS0",
+    "TqgXdtw6A4Sdsp97VXT9fkPW9rso3lrkpsl/9EQ1mR/DWK",
+    "6PBmRfIuSFuqnLKY6v/z2hXHxF7IoojfZLa2kZr9Aed4l9",
+    "WheQOTA19k5r2BmlRw/W9CrgCBo0Sdj+KQIDAQAB",
     );
 
     const ED25519_PRIVATE_KEY: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
@@ -158,12 +159,12 @@ pub mod test {
             .sign_stream(
                 HeaderIterator::new(
                     concat!(
-                        "From: hello@stalw.art\r\n",
-                        "To: dkim@stalw.art\r\n",
-                        "Subject: Testing  DKIM!\r\n\r\n",
-                        "Here goes the test\r\n\r\n"
+                    "From: hello@stalw.art\r\n",
+                    "To: dkim@stalw.art\r\n",
+                    "Subject: Testing  DKIM!\r\n\r\n",
+                    "Here goes the test\r\n\r\n"
                     )
-                    .as_bytes(),
+                        .as_bytes(),
                 ),
                 311923920,
             )
@@ -171,16 +172,16 @@ pub mod test {
 
         assert_eq!(
             concat!(
-                "dkim-signature:v=1; a=rsa-sha256; s=default; d=stalw.art; ",
-                "c=relaxed/relaxed; h=Subject:To:From; t=311923920; ",
-                "bh=QoiUNYyUV+1tZ/xUPRcE+gST2zAStvJx1OK078Yl m5s=; ",
-                "b=B/p1FPSJ+Jl4A94381+DTZZnNO4c3fVqDnj0M0Vk5JuvnKb5",
-                "dKSwaoIHPO8UUJsroqH z+R0/eWyW1Vlz+uMIZc2j7MVPJcGaY",
-                "Ni85uCQbPd8VpDKWWab6m21ngXYIpagmzKOKYllyOeK3X qwDz",
-                "Bo0T2DdNjGyMUOAWHxrKGU+fbcPHQYxTBCpfOxE/nc/uxxqh+i",
-                "2uXrsxz7PdCEN01LZiYVV yOzcv0ER9A7aDReE2XPVHnFL8jxE",
-                "2BD53HRv3hGkIDcC6wKOKG/lmID+U8tQk5CP0dLmprgjgTv Se",
-                "bu6xNc6SSIgpvwryAAzJEVwmaBqvE8RNk3Vg10lBZEuNsj2Q==;",
+            "dkim-signature:v=1; a=rsa-sha256; s=default; d=stalw.art; ",
+            "c=relaxed/relaxed; h=Subject:To:From; t=311923920; ",
+            "bh=QoiUNYyUV+1tZ/xUPRcE+gST2zAStvJx1OK078Yl m5s=; ",
+            "b=B/p1FPSJ+Jl4A94381+DTZZnNO4c3fVqDnj0M0Vk5JuvnKb5",
+            "dKSwaoIHPO8UUJsroqH z+R0/eWyW1Vlz+uMIZc2j7MVPJcGaY",
+            "Ni85uCQbPd8VpDKWWab6m21ngXYIpagmzKOKYllyOeK3X qwDz",
+            "Bo0T2DdNjGyMUOAWHxrKGU+fbcPHQYxTBCpfOxE/nc/uxxqh+i",
+            "2uXrsxz7PdCEN01LZiYVV yOzcv0ER9A7aDReE2XPVHnFL8jxE",
+            "2BD53HRv3hGkIDcC6wKOKG/lmID+U8tQk5CP0dLmprgjgTv Se",
+            "bu6xNc6SSIgpvwryAAzJEVwmaBqvE8RNk3Vg10lBZEuNsj2Q==;",
             ),
             signature.to_string()
         );
@@ -193,32 +194,32 @@ pub mod test {
     #[tokio::test]
     async fn dkim_sign_verify() {
         let message = concat!(
-            "From: bill@example.com\r\n",
-            "To: jdoe@example.com\r\n",
-            "Subject: TPS Report\r\n",
-            "\r\n",
-            "I'm going to need those TPS reports ASAP. ",
-            "So, if you could do that, that'd be great.\r\n"
+        "From: bill@example.com\r\n",
+        "To: jdoe@example.com\r\n",
+        "Subject: TPS Report\r\n",
+        "\r\n",
+        "I'm going to need those TPS reports ASAP. ",
+        "So, if you could do that, that'd be great.\r\n"
         );
         let empty_message = concat!(
-            "From: bill@example.com\r\n",
-            "To: jdoe@example.com\r\n",
-            "Subject: Empty TPS Report\r\n",
-            "\r\n",
-            "\r\n"
+        "From: bill@example.com\r\n",
+        "To: jdoe@example.com\r\n",
+        "Subject: Empty TPS Report\r\n",
+        "\r\n",
+        "\r\n"
         );
         let message_multiheader = concat!(
-            "X-Duplicate-Header: 4\r\n",
-            "From: bill@example.com\r\n",
-            "X-Duplicate-Header: 3\r\n",
-            "To: jdoe@example.com\r\n",
-            "X-Duplicate-Header: 2\r\n",
-            "Subject: TPS Report\r\n",
-            "X-Duplicate-Header: 1\r\n",
-            "To: jane@example.com\r\n",
-            "\r\n",
-            "I'm going to need those TPS reports ASAP. ",
-            "So, if you could do that, that'd be great.\r\n"
+        "X-Duplicate-Header: 4\r\n",
+        "From: bill@example.com\r\n",
+        "X-Duplicate-Header: 3\r\n",
+        "To: jdoe@example.com\r\n",
+        "X-Duplicate-Header: 2\r\n",
+        "Subject: TPS Report\r\n",
+        "X-Duplicate-Header: 1\r\n",
+        "To: jane@example.com\r\n",
+        "\r\n",
+        "I'm going to need those TPS reports ASAP. ",
+        "So, if you could do that, that'd be great.\r\n"
         );
 
         // Create private keys
@@ -230,7 +231,7 @@ pub mod test {
             &base64_decode(ED25519_PRIVATE_KEY.as_bytes()).unwrap(),
             &base64_decode(ED25519_PUBLIC_KEY.rsplit_once("p=").unwrap().1.as_bytes()).unwrap(),
         )
-        .unwrap();
+            .unwrap();
 
         // Create resolver
         let resolver = Resolver::new_system_conf().unwrap();
@@ -270,7 +271,7 @@ pub mod test {
             message,
             Ok(()),
         )
-        .await;
+            .await;
 
         dbg!("Test ED25519-SHA256 relaxed/relaxed");
         verify(
@@ -284,7 +285,7 @@ pub mod test {
             message,
             Ok(()),
         )
-        .await;
+            .await;
 
         dbg!("Test RSA-SHA256 relaxed/relaxed with an empty message");
         #[cfg(feature = "rust-crypto")]
@@ -303,7 +304,7 @@ pub mod test {
             empty_message,
             Ok(()),
         )
-        .await;
+            .await;
 
         dbg!("Test RSA-SHA256 simple/simple with an empty message");
         #[cfg(feature = "rust-crypto")]
@@ -324,7 +325,7 @@ pub mod test {
             empty_message,
             Ok(()),
         )
-        .await;
+            .await;
 
         dbg!("Test RSA-SHA256 simple/simple with duplicated headers");
         #[cfg(feature = "rust-crypto")]
@@ -350,7 +351,7 @@ pub mod test {
             message_multiheader,
             Ok(()),
         )
-        .await;
+            .await;
 
         dbg!("Test RSA-SHA256 simple/relaxed with fixed body length (relaxed)");
         #[cfg(feature = "rust-crypto")]
@@ -371,7 +372,7 @@ pub mod test {
             Ok(()),
             false,
         )
-        .await;
+            .await;
 
         dbg!("Test RSA-SHA256 simple/relaxed with fixed body length (strict)");
         #[cfg(feature = "rust-crypto")]
@@ -392,7 +393,7 @@ pub mod test {
             Err(super::Error::SignatureLength),
             true,
         )
-        .await;
+            .await;
 
         dbg!("Test AUID not matching domains");
         #[cfg(feature = "rust-crypto")]
@@ -411,7 +412,7 @@ pub mod test {
             message,
             Err(super::Error::FailedAuidMatch),
         )
-        .await;
+            .await;
 
         dbg!("Test expired signature and reporting");
         #[cfg(feature = "rust-crypto")]
@@ -431,10 +432,10 @@ pub mod test {
             message,
             Err(super::Error::SignatureExpired),
         )
-        .await
-        .pop()
-        .unwrap()
-        .report;
+            .await
+            .pop()
+            .unwrap()
+            .report;
         assert_eq!(r.as_deref(), Some("dkim-failures@example.com"));
 
         dbg!("Verify ATPS (failure)");
@@ -455,7 +456,7 @@ pub mod test {
             message,
             Err(super::Error::DnsRecordNotFound(ResponseCode::NXDomain)),
         )
-        .await;
+            .await;
 
         dbg!("Verify ATPS (success)");
         #[cfg(feature = "rust-crypto")]
@@ -481,7 +482,7 @@ pub mod test {
             message,
             Ok(()),
         )
-        .await;
+            .await;
 
         dbg!("Verify ATPS (success - no hash)");
         #[cfg(feature = "rust-crypto")]
@@ -506,7 +507,7 @@ pub mod test {
             message,
             Ok(()),
         )
-        .await;
+            .await;
     }
 
     pub async fn verify_with_opts<'x>(
@@ -521,7 +522,7 @@ pub mod test {
         message.extend_from_slice(message_.as_bytes());
 
         let message = AuthenticatedMessage::parse_with_opts(&message, strict).unwrap();
-        let dkim = resolver.verify_dkim(&message).await;
+        let dkim = DkimVerifier::verify_dkim(&resolver, &message).await;
 
         match (dkim.last().unwrap().result(), &expect) {
             (DkimResult::Pass, Ok(_)) => (),

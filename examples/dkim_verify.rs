@@ -9,6 +9,7 @@
  */
 
 use mail_auth::{AuthenticatedMessage, DkimResult, Resolver};
+use mail_auth::dkim::verify::DkimVerifier;
 
 const TEST_MESSAGE: &str = r#"DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed;
 d=football.example.com; i=@football.example.com;
@@ -46,7 +47,7 @@ async fn main() {
     let authenticated_message = AuthenticatedMessage::parse(TEST_MESSAGE.as_bytes()).unwrap();
 
     // Validate signature
-    let result = resolver.verify_dkim(&authenticated_message).await;
+    let result = DkimVerifier::verify_dkim(&resolver, &authenticated_message).await;
 
     // Make sure all signatures passed verification
     assert!(result.iter().all(|s| s.result() == &DkimResult::Pass));

@@ -16,6 +16,7 @@ use mail_auth::{
     },
     AuthenticatedMessage, AuthenticationResults, Resolver,
 };
+use mail_auth::dkim::verify::DkimVerifier;
 
 const TEST_MESSAGE: &str = include_str!("../resources/arc/001.txt");
 
@@ -45,7 +46,7 @@ async fn main() {
 
     // Verify ARC and DKIM signatures
     let arc_result = resolver.verify_arc(&authenticated_message).await;
-    let dkim_result = resolver.verify_dkim(&authenticated_message).await;
+    let dkim_result = DkimVerifier::verify_dkim(&resolver, &authenticated_message).await;
 
     // Build Authenticated-Results header
     let auth_results = AuthenticationResults::new("mx.mydomain.org")
