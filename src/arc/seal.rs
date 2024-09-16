@@ -23,7 +23,7 @@ use crate::{
 
 use super::{ArcSealer, ArcSet, ChainValidation, Signature};
 
-impl<T: SigningKey<Hasher = Sha256>> ArcSealer<T, Done> {
+impl<T: SigningKey<Hasher=Sha256>> ArcSealer<T, Done> {
     pub fn seal<'x>(
         &self,
         message: &'x AuthenticatedMessage<'x>,
@@ -211,19 +211,20 @@ mod test {
         dkim::DkimSigner,
         AuthenticatedMessage, AuthenticationResults, DkimResult, Resolver,
     };
+    use crate::dkim::verify::DkimVerifier;
 
     const RSA_PRIVATE_KEY: &str = include_str!("../../resources/rsa-private.pem");
 
     const RSA_PUBLIC_KEY: &str = concat!(
-        "v=DKIM1; t=s; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ",
-        "8AMIIBCgKCAQEAv9XYXG3uK95115mB4nJ37nGeNe2CrARm",
-        "1agrbcnSk5oIaEfMZLUR/X8gPzoiNHZcfMZEVR6bAytxUh",
-        "c5EvZIZrjSuEEeny+fFd/cTvcm3cOUUbIaUmSACj0dL2/K",
-        "wW0LyUaza9z9zor7I5XdIl1M53qVd5GI62XBB76FH+Q0bW",
-        "PZNkT4NclzTLspD/MTpNCCPhySM4Kdg5CuDczTH4aNzyS0",
-        "TqgXdtw6A4Sdsp97VXT9fkPW9rso3lrkpsl/9EQ1mR/DWK",
-        "6PBmRfIuSFuqnLKY6v/z2hXHxF7IoojfZLa2kZr9Aed4l9",
-        "WheQOTA19k5r2BmlRw/W9CrgCBo0Sdj+KQIDAQAB",
+    "v=DKIM1; t=s; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ",
+    "8AMIIBCgKCAQEAv9XYXG3uK95115mB4nJ37nGeNe2CrARm",
+    "1agrbcnSk5oIaEfMZLUR/X8gPzoiNHZcfMZEVR6bAytxUh",
+    "c5EvZIZrjSuEEeny+fFd/cTvcm3cOUUbIaUmSACj0dL2/K",
+    "wW0LyUaza9z9zor7I5XdIl1M53qVd5GI62XBB76FH+Q0bW",
+    "PZNkT4NclzTLspD/MTpNCCPhySM4Kdg5CuDczTH4aNzyS0",
+    "TqgXdtw6A4Sdsp97VXT9fkPW9rso3lrkpsl/9EQ1mR/DWK",
+    "6PBmRfIuSFuqnLKY6v/z2hXHxF7IoojfZLa2kZr9Aed4l9",
+    "WheQOTA19k5r2BmlRw/W9CrgCBo0Sdj+KQIDAQAB",
     );
 
     const ED25519_PRIVATE_KEY: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
@@ -237,12 +238,12 @@ mod test {
     #[tokio::test]
     async fn arc_seal() {
         let message = concat!(
-            "From: queso@manchego.org\r\n",
-            "To: affumicata@scamorza.org\r\n",
-            "Subject: Say cheese\r\n",
-            "\r\n",
-            "We need to settle which one of us ",
-            "is tastier.\r\n"
+        "From: queso@manchego.org\r\n",
+        "To: affumicata@scamorza.org\r\n",
+        "Subject: Say cheese\r\n",
+        "\r\n",
+        "We need to settle which one of us ",
+        "is tastier.\r\n"
         );
 
         // Crate resolver
@@ -297,7 +298,7 @@ mod test {
                 #[cfg(all(feature = "ring", not(feature = "rust-crypto")))]
                 Ed25519Key::from_seed_and_public_key(&pk_ed_private, &pk_ed_public).unwrap(),
             )
-            .await;
+                .await;
             raw_message =
                 arc_verify_and_seal(&resolver, &raw_message, "manchego.org", "rsa", pk_rsa).await;
         }
@@ -310,10 +311,10 @@ mod test {
         raw_message: &str,
         d: &str,
         s: &str,
-        pk: impl SigningKey<Hasher = Sha256>,
+        pk: impl SigningKey<Hasher=Sha256>,
     ) -> String {
         let message = AuthenticatedMessage::parse(raw_message.as_bytes()).unwrap();
-        let dkim_result = resolver.verify_dkim(&message).await;
+        let dkim_result = DkimVerifier::verify_dkim(&resolver, &message).await;
         let arc_result = resolver.verify_arc(&message).await;
         assert!(
             matches!(arc_result.result(), DkimResult::Pass | DkimResult::None),

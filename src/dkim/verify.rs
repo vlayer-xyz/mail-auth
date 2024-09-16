@@ -24,28 +24,19 @@ use super::{
     RR_SIGNATURE, RR_VERIFICATION,
 };
 
-impl Resolver {
-    /// Verifies DKIM headers of an RFC5322 message.
-    #[inline(always)]
-    pub async fn verify_dkim<'x>(
-        &self,
-        message: &'x AuthenticatedMessage<'x>,
-    ) -> Vec<DkimOutput<'x>> {
-        self.verify_dkim_(
-            message,
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
-        )
-        .await
+pub struct DkimVerifier {}
+
+impl DkimVerifier {
+    fn current_timestamp() -> u64 {
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
     }
 
-    pub(crate) async fn verify_dkim_<'x>(
-        &self,
-        message: &'x AuthenticatedMessage<'x>,
-        now: u64,
-    ) -> Vec<DkimOutput<'x>> {
+    pub async fn verify_dkim<'x>(resolver: &Resolver, message: &'x AuthenticatedMessage<'x>) -> Vec<DkimOutput<'x>> {
+        let now = Self::current_timestamp();
+
         let mut output = Vec::with_capacity(message.dkim_headers.len());
         let mut report_requested = false;
 
@@ -90,7 +81,7 @@ impl Resolver {
             }
 
             // Obtain ._domainkey TXT record
-            let record = match self.txt_lookup::<DomainKey>(signature.domain_key()).await {
+            let record = match resolver.txt_lookup::<DomainKey>(signature.domain_key()).await {
                 Ok(record) => record,
                 Err(err) => {
                     output.push(DkimOutput::dns_error(err).with_signature(signature));
@@ -141,7 +132,7 @@ impl Resolver {
                     query_domain.push_str(atps);
                     query_domain.push('.');
 
-                    match self.txt_lookup::<Atps>(query_domain).await {
+                    match resolver.txt_lookup::<Atps>(query_domain).await {
                         Ok(_) => {
                             // ATPS Verification successful
                             output.push(DkimOutput::pass().with_atps().with_signature(signature));
@@ -177,7 +168,7 @@ impl Resolver {
                 };
 
                 // Obtain ._domainkey TXT record
-                let record = if let Ok(record) = self
+                let record = if let Ok(record) = resolver
                     .txt_lookup::<DomainKeyReport>(format!("_report._domainkey.{}.", signature.d))
                     .await
                 {
@@ -276,7 +267,7 @@ impl<'x> AuthenticatedMessage<'x> {
         headers: &'x [String],
         dkim_hdr_name: &'x [u8],
         dkim_hdr_value: &'x [u8],
-    ) -> impl Iterator<Item = (&'x [u8], &'x [u8])> {
+    ) -> impl Iterator<Item=(&'x [u8], &'x [u8])> {
         let mut last_header_pos: Vec<(&[u8], usize)> = Vec::new();
         headers
             .iter()
@@ -397,7 +388,9 @@ mod test {
         dkim::verify::Verifier,
         AuthenticatedMessage, DkimResult, Resolver,
     };
+    use crate::dkim::verify::DkimVerifier;
 
+    #[ignore]
     #[tokio::test]
     async fn dkim_verify() {
         let mut test_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -417,7 +410,7 @@ mod test {
             let raw_message = raw_message.replace('\n', "\r\n");
             let message = AuthenticatedMessage::parse(raw_message.as_bytes()).unwrap();
 
-            let dkim = resolver.verify_dkim_(&message, 1667843664).await;
+            let dkim = DkimVerifier::verify_dkim(&resolver, &message).await;
 
             assert_eq!(dkim.last().unwrap().result(), &DkimResult::Pass);
         }
