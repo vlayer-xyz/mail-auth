@@ -14,7 +14,7 @@ use crate::{
     AuthenticatedMessage, DkimOutput, DkimResult, DmarcOutput, DmarcResult, Error, Resolver,
     SpfOutput, SpfResult,
 };
-
+use crate::common::resolve::Resolve;
 use super::{Alignment, Dmarc, URI};
 
 impl Resolver {
@@ -91,10 +91,10 @@ impl Resolver {
                     DmarcResult::Pass
                 } else if dmarc.adkim == Alignment::Relaxed
                     && dkim_output.iter().any(|o| {
-                        o.result == DkimResult::Pass
-                            && domain_suffix_fn(&o.signature.as_ref().unwrap().d)
-                                == rfc5322_from_subdomain
-                    })
+                    o.result == DkimResult::Pass
+                        && domain_suffix_fn(&o.signature.as_ref().unwrap().d)
+                        == rfc5322_from_subdomain
+                })
                 {
                     output.policy = dmarc.sp;
                     DmarcResult::Pass
@@ -102,7 +102,7 @@ impl Resolver {
                     if dkim_output.iter().any(|o| {
                         o.result == DkimResult::Pass
                             && domain_suffix_fn(&o.signature.as_ref().unwrap().d)
-                                == rfc5322_from_subdomain
+                            == rfc5322_from_subdomain
                     }) {
                         output.policy = dmarc.sp;
                     }
@@ -124,21 +124,21 @@ impl Resolver {
         for address in addresses {
             if address.uri.ends_with(domain)
                 || match self
-                    .txt_lookup::<Dmarc>(format!(
-                        "{}._report._dmarc.{}.",
-                        domain,
-                        address
-                            .uri
-                            .rsplit_once('@')
-                            .map(|(_, d)| d)
-                            .unwrap_or_default()
-                    ))
-                    .await
-                {
-                    Ok(_) => true,
-                    Err(Error::DnsError(_)) => return None,
-                    _ => false,
-                }
+                .txt_lookup::<Dmarc>(format!(
+                    "{}._report._dmarc.{}.",
+                    domain,
+                    address
+                        .uri
+                        .rsplit_once('@')
+                        .map(|(_, d)| d)
+                        .unwrap_or_default()
+                ))
+                .await
+            {
+                Ok(_) => true,
+                Err(Error::DnsError(_)) => return None,
+                _ => false,
+            }
             {
                 result.push(address);
             }
@@ -219,8 +219,8 @@ mod test {
             (
                 "_dmarc.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@example.org\r\n\r\n",
                 "example.org",
@@ -235,8 +235,8 @@ mod test {
             (
                 "_dmarc.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=r; adkim=r; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=r; adkim=r; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@example.org\r\n\r\n",
                 "subdomain.example.org",
@@ -251,8 +251,8 @@ mod test {
             (
                 "_dmarc.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@example.org\r\n\r\n",
                 "subdomain.example.org",
@@ -267,8 +267,8 @@ mod test {
             (
                 "_dmarc.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@a.b.c.example.org\r\n\r\n",
                 "a.b.c.example.org",
@@ -283,8 +283,8 @@ mod test {
             (
                 "_dmarc.c.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=r; adkim=r; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=r; adkim=r; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@a.b.c.example.org\r\n\r\n",
                 "example.org",
@@ -299,8 +299,8 @@ mod test {
             (
                 "_dmarc.c.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=r; adkim=r; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=r; adkim=r; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@a.b.c.example.org\r\n\r\n",
                 "z.example.org",
@@ -315,8 +315,8 @@ mod test {
             (
                 "_dmarc.example.org.",
                 concat!(
-                    "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
-                    "rua=mailto:dmarc-feedback@example.org"
+                "v=DMARC1; p=reject; sp=quarantine; np=None; aspf=s; adkim=s; fo=1;",
+                "rua=mailto:dmarc-feedback@example.org"
                 ),
                 "From: hello@example.org\r\n\r\n",
                 "example.org",

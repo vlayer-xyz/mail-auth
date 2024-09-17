@@ -522,7 +522,7 @@ pub mod test {
         message.extend_from_slice(message_.as_bytes());
 
         let message = AuthenticatedMessage::parse_with_opts(&message, strict).unwrap();
-        let dkim = DkimVerifier::verify_dkim(&resolver, &message).await;
+        let dkim = DkimVerifier::verify_dkim(resolver, &message).await;
 
         match (dkim.last().unwrap().result(), &expect) {
             (DkimResult::Pass, Ok(_)) => (),
