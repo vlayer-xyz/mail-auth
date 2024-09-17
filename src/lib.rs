@@ -50,6 +50,7 @@ pub mod spf;
 pub use flate2;
 #[cfg(feature = "dns-resolvers")]
 pub use hickory_resolver;
+#[cfg(feature = "dns-resolvers")]
 pub use zip;
 
 #[cfg(feature = "dns-resolvers")]
