@@ -17,9 +17,10 @@ use std::{
 use mail_builder::encoders::base64::base64_encode;
 
 use crate::{
-    ArcOutput, AuthenticationResults, DkimOutput, DkimResult, DmarcOutput, DmarcResult, Error,
-    IprevOutput, IprevResult, ReceivedSpf, SpfOutput, SpfResult,
+    ArcOutput, AuthenticationResults, DkimOutput, DkimResult, Error, ReceivedSpf, SpfOutput, SpfResult,
 };
+#[cfg(feature = "dns-resolvers")]
+use crate::{DmarcOutput, DmarcResult, IprevOutput, IprevResult};
 
 use super::headers::{HeaderWriter, Writer};
 
@@ -121,6 +122,7 @@ impl<'x> AuthenticationResults<'x> {
         self
     }
 
+    #[cfg(feature = "dns-resolvers")]
     pub fn with_dmarc_result(mut self, dmarc: &DmarcOutput) -> Self {
         self.auth_results.push_str(";\r\n\tdmarc=");
         if dmarc.spf_result == DmarcResult::Pass || dmarc.dkim_result == DmarcResult::Pass {
@@ -137,10 +139,11 @@ impl<'x> AuthenticationResults<'x> {
             " header.from={} policy.dmarc={}",
             dmarc.domain, dmarc.policy
         )
-        .ok();
+            .ok();
         self
     }
 
+    #[cfg(feature = "dns-resolvers")]
     pub fn with_iprev_result(mut self, iprev: &IprevOutput, remote_ip: IpAddr) -> Self {
         self.auth_results.push_str(";\r\n\tiprev=");
         iprev.result.as_auth_result(&mut self.auth_results);
@@ -199,7 +202,7 @@ impl ReceivedSpf {
             received_spf,
             "\r\n\treceiver={hostname}; client-ip={ip_addr}; envelope-from=\"{mail_from}\"; helo={helo};",
         )
-        .ok();
+            .ok();
 
         ReceivedSpf { received_spf }
     }
@@ -237,7 +240,7 @@ impl SpfResult {
                 "none ({hostname}: no SPF records found for {mail_from})",
             ),
         }
-        .ok();
+            .ok();
     }
 }
 
@@ -245,6 +248,7 @@ pub trait AsAuthResult {
     fn as_auth_result(&self, header: &mut String);
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl AsAuthResult for DmarcResult {
     fn as_auth_result(&self, header: &mut String) {
         match &self {
@@ -266,6 +270,7 @@ impl AsAuthResult for DmarcResult {
     }
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl AsAuthResult for IprevResult {
     fn as_auth_result(&self, header: &mut String) {
         match &self {
@@ -332,7 +337,9 @@ impl AsAuthResult for Error {
             Error::RevokedPublicKey => "revoked public key",
             Error::IncompatibleAlgorithms => "incompatible record/signature algorithms",
             Error::SignatureExpired => "signature error",
+            #[cfg(feature = "dns-resolvers")]
             Error::DnsError(_) => "dns error",
+            #[cfg(feature = "dns-resolvers")]
             Error::DnsRecordNotFound(_) => "dns record not found",
             Error::ArcInvalidInstance(i) => {
                 write!(header, "invalid ARC instance {i})").ok();
@@ -379,8 +386,8 @@ mod test {
             ),
             (
                 concat!(
-                    "dkim=fail (verification failed) header.d=example.org ",
-                    "header.s=myselector header.b=MTIzNDU2"
+                "dkim=fail (verification failed) header.d=example.org ",
+                "header.s=myselector header.b=MTIzNDU2"
                 ),
                 DkimOutput {
                     result: DkimResult::Fail(Error::FailedVerification),
@@ -397,8 +404,8 @@ mod test {
             ),
             (
                 concat!(
-                    "dkim-atps=temperror (dns error) header.d=atps.example.org ",
-                    "header.s=otherselctor header.b=YWJjZGVm header.from=jdoe@example.org"
+                "dkim-atps=temperror (dns error) header.d=atps.example.org ",
+                "header.s=otherselctor header.b=YWJjZGVm header.from=jdoe@example.org"
                 ),
                 DkimOutput {
                     result: DkimResult::TempError(Error::DnsError("".to_string())),
@@ -432,13 +439,13 @@ mod test {
         ) in [
             (
                 concat!(
-                    "spf=pass (localhost: domain of jdoe@example.org designates 192.168.1.1 ",
-                    "as permitted sender) smtp.mailfrom=jdoe@example.org"
+                "spf=pass (localhost: domain of jdoe@example.org designates 192.168.1.1 ",
+                "as permitted sender) smtp.mailfrom=jdoe@example.org"
                 ),
                 concat!(
-                    "pass (localhost: domain of jdoe@example.org designates 192.168.1.1 as ",
-                    "permitted sender)\r\n\treceiver=localhost; client-ip=192.168.1.1; ",
-                    "envelope-from=\"jdoe@example.org\"; helo=example.org;"
+                "pass (localhost: domain of jdoe@example.org designates 192.168.1.1 as ",
+                "permitted sender)\r\n\treceiver=localhost; client-ip=192.168.1.1; ",
+                "envelope-from=\"jdoe@example.org\"; helo=example.org;"
                 ),
                 SpfResult::Pass,
                 "192.168.1.1".parse().unwrap(),
@@ -448,14 +455,14 @@ mod test {
             ),
             (
                 concat!(
-                    "spf=fail (mx.domain.org: domain of sender@otherdomain.org does not ",
-                    "designate a:b:c::f as permitted sender) smtp.mailfrom=sender@otherdomain.org"
+                "spf=fail (mx.domain.org: domain of sender@otherdomain.org does not ",
+                "designate a:b:c::f as permitted sender) smtp.mailfrom=sender@otherdomain.org"
                 ),
                 concat!(
-                    "fail (mx.domain.org: domain of sender@otherdomain.org does not designate ",
-                    "a:b:c::f as permitted sender)\r\n\treceiver=mx.domain.org; ",
-                    "client-ip=a:b:c::f; envelope-from=\"sender@otherdomain.org\"; ",
-                    "helo=otherdomain.org;"
+                "fail (mx.domain.org: domain of sender@otherdomain.org does not designate ",
+                "a:b:c::f as permitted sender)\r\n\treceiver=mx.domain.org; ",
+                "client-ip=a:b:c::f; envelope-from=\"sender@otherdomain.org\"; ",
+                "helo=otherdomain.org;"
                 ),
                 SpfResult::Fail,
                 "a:b:c::f".parse().unwrap(),
@@ -465,13 +472,13 @@ mod test {
             ),
             (
                 concat!(
-                    "spf=neutral (mx.domain.org: domain of postmaster@example.org reports neutral ",
-                    "for a:b:c::f) smtp.mailfrom=<>"
+                "spf=neutral (mx.domain.org: domain of postmaster@example.org reports neutral ",
+                "for a:b:c::f) smtp.mailfrom=<>"
                 ),
                 concat!(
-                    "neutral (mx.domain.org: domain of postmaster@example.org reports neutral for ",
-                    "a:b:c::f)\r\n\treceiver=mx.domain.org; client-ip=a:b:c::f; ",
-                    "envelope-from=\"postmaster@example.org\"; helo=example.org;"
+                "neutral (mx.domain.org: domain of postmaster@example.org reports neutral for ",
+                "a:b:c::f)\r\n\treceiver=mx.domain.org; client-ip=a:b:c::f; ",
+                "envelope-from=\"postmaster@example.org\"; helo=example.org;"
                 ),
                 SpfResult::Neutral,
                 "a:b:c::f".parse().unwrap(),

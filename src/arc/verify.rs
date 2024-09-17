@@ -10,6 +10,7 @@
 
 use std::time::SystemTime;
 
+#[cfg(feature = "dns-resolvers")]
 use crate::{
     common::{
         crypto::HashAlgorithm,
@@ -22,6 +23,7 @@ use crate::{
 use crate::common::resolve::Resolve;
 use super::{ChainValidation, Set};
 
+#[cfg(feature = "dns-resolvers")]
 impl Resolver {
     /// Verifies ARC headers of an RFC5322 message.
     pub async fn verify_arc<'x>(&self, message: &'x AuthenticatedMessage<'x>) -> ArcOutput<'x> {
@@ -176,6 +178,7 @@ impl Resolver {
 
 #[cfg(test)]
 #[allow(unused)]
+#[cfg(feature = "dns-resolvers")]
 mod test {
     use std::{
         fs,

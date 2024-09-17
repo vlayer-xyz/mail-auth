@@ -10,8 +10,10 @@
 
 use std::net::IpAddr;
 
+#[cfg(feature = "dns-resolvers")]
 use crate::{dkim::Canonicalization, Error, IprevOutput, IprevResult, Resolver};
-
+#[cfg(not(feature = "dns-resolvers"))]
+use crate::dkim::Canonicalization;
 use super::crypto::{Algorithm, VerifyingKey};
 
 pub struct DomainKey {
@@ -19,6 +21,7 @@ pub struct DomainKey {
     pub f: u64,
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl Resolver {
     pub async fn verify_iprev(&self, addr: IpAddr) -> IprevOutput {
         match self.ptr_lookup(addr).await {
@@ -72,6 +75,7 @@ impl Resolver {
     }
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl IprevOutput {
     pub fn result(&self) -> &IprevResult {
         &self.result
@@ -81,7 +85,7 @@ impl IprevOutput {
 impl DomainKey {
     pub(crate) fn verify<'a>(
         &self,
-        headers: &mut dyn Iterator<Item = (&'a [u8], &'a [u8])>,
+        headers: &mut dyn Iterator<Item=(&'a [u8], &'a [u8])>,
         input: &impl VerifySignature,
         canonicalization: Canonicalization,
     ) -> crate::Result<()> {

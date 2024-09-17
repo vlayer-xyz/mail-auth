@@ -196,9 +196,14 @@ impl DkimVerifier {
                             | Error::UnsupportedKeyType
                             | Error::IncompatibleAlgorithms => (record.rr & RR_SIGNATURE) != 0,
                             Error::SignatureExpired => (record.rr & RR_EXPIRATION) != 0,
+                            #[cfg(feature = "dns-resolvers")]
                             Error::DnsError(_)
                             | Error::DnsRecordNotFound(_)
                             | Error::InvalidRecordType
+                            | Error::ParseError
+                            | Error::RevokedPublicKey => (record.rr & RR_DNS) != 0,
+                            #[cfg(not(feature = "dns-resolvers"))]
+                            Error::InvalidRecordType
                             | Error::ParseError
                             | Error::RevokedPublicKey => (record.rr & RR_DNS) != 0,
                             Error::MissingParameters
@@ -408,10 +413,9 @@ mod test {
         }
     }
 
-    use std::future::{ready, Ready};
     use std::sync::Arc;
-    use crate::common::resolve::Resolve;
-    use crate::common::resolver::{IntoFqdn, UnwrapTxtRecord};
+    use crate::common::resolve::{IntoFqdn, Resolve};
+    use crate::common::resolve::UnwrapTxtRecord;
 
     struct MockResolver {
         pub dns_records: String,

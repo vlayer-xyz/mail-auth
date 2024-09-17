@@ -205,11 +205,14 @@ impl<'x> DkimOutput<'x> {
     }
 
     pub(crate) fn dns_error(err: Error) -> Self {
+        #[cfg(feature = "dns-resolvers")]
         if matches!(&err, Error::DnsError(_)) {
             DkimOutput::temp_err(err)
         } else {
             DkimOutput::perm_err(err)
         }
+        #[cfg(not(feature = "dns-resolvers"))]
+        DkimOutput::perm_err(err)
     }
 
     pub(crate) fn with_signature(mut self, signature: &'x Signature) -> Self {
@@ -247,10 +250,13 @@ impl<'x> ArcOutput<'x> {
 
 impl From<Error> for DkimResult {
     fn from(err: Error) -> Self {
+        #[cfg(feature = "dns-resolvers")]
         if matches!(&err, Error::DnsError(_)) {
             DkimResult::TempError(err)
         } else {
             DkimResult::PermError(err)
         }
+        #[cfg(not(feature = "dns-resolvers"))]
+        DkimResult::PermError(err)
     }
 }

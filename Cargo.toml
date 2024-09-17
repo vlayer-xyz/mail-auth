@@ -16,9 +16,10 @@ resolver = "2"
 doctest = false
 
 [features]
-default = ["ring", "rustls-pemfile"]
+default = ["ring", "rustls-pemfile", "dns-resolvers"]
 rust-crypto = ["ed25519-dalek", "rsa", "sha1", "sha2"]
 generate = ["rsa", "rand"]
+dns-resolvers = ["hickory-resolver"]
 test = []
 
 [dependencies]
@@ -37,10 +38,11 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha1 = { version = "0.10", features = ["oid"], optional = true }
 sha2 = { version = "0.10.6", features = ["oid"], optional = true }
-hickory-resolver = { version = "0.24", features = ["dns-over-rustls", "dnssec-ring"] }
+hickory-resolver = { version = "0.24", features = ["dns-over-rustls", "dnssec-ring"], optional = true }
 zip = "2.1.1"
 rand = { version = "0.8.5", optional = true }
 futures = { version = "0.3.30", features = ["executor"] }
+
 [dev-dependencies]
 tokio = { version = "1.16", features = ["net", "io-util", "time", "rt-multi-thread", "macros"] }
 rustls-pemfile = "2"

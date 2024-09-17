@@ -8,7 +8,7 @@
  * except according to those terms.
  */
 
-use crate::{Error, IprevResult};
+use crate::{Error};
 
 pub mod auth_results;
 pub mod base32;
@@ -17,16 +17,18 @@ pub mod headers;
 pub mod lru;
 pub mod message;
 pub mod parse;
+#[cfg(feature = "dns-resolvers")]
 pub mod resolver;
 pub mod verify;
 pub mod resolve;
 
-impl From<Error> for IprevResult {
+#[cfg(feature = "dns-resolvers")]
+impl From<Error> for crate::IprevResult {
     fn from(err: Error) -> Self {
         if matches!(&err, Error::DnsError(_)) {
-            IprevResult::TempError(err)
+            crate::IprevResult::TempError(err)
         } else {
-            IprevResult::PermError(err)
+            crate::IprevResult::PermError(err)
         }
     }
 }

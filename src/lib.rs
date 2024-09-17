@@ -22,27 +22,37 @@ use std::{
 use arc::Set;
 use common::{crypto::HashAlgorithm, headers::Header, lru::LruCache, verify::DomainKey};
 use dkim::{Atps, Canonicalization, DomainKeyReport};
+#[cfg(feature = "dns-resolvers")]
 use dmarc::Dmarc;
+#[cfg(feature = "dns-resolvers")]
 use hickory_resolver::{
     proto::{error::ProtoError, op::ResponseCode},
     TokioAsyncResolver,
 };
+#[cfg(feature = "dns-resolvers")]
 use mta_sts::{MtaSts, TlsRpt};
 use parking_lot::Mutex;
+#[cfg(feature = "dns-resolvers")]
 use spf::{Macro, Spf};
 
 pub mod arc;
 pub mod common;
 pub mod dkim;
+#[cfg(feature = "dns-resolvers")]
 pub mod dmarc;
+#[cfg(feature = "dns-resolvers")]
 pub mod mta_sts;
+#[cfg(feature = "dns-resolvers")]
 pub mod report;
+#[cfg(feature = "dns-resolvers")]
 pub mod spf;
 
 pub use flate2;
+#[cfg(feature = "dns-resolvers")]
 pub use hickory_resolver;
 pub use zip;
 
+#[cfg(feature = "dns-resolvers")]
 pub struct Resolver {
     pub(crate) resolver: TokioAsyncResolver,
     pub(crate) cache_txt: LruCache<String, Txt>,
@@ -69,13 +79,18 @@ pub enum IpLookupStrategy {
 
 #[derive(Clone)]
 pub enum Txt {
+    #[cfg(feature = "dns-resolvers")]
     Spf(Arc<Spf>),
+    #[cfg(feature = "dns-resolvers")]
     SpfMacro(Arc<Macro>),
     DomainKey(Arc<DomainKey>),
     DomainKeyReport(Arc<DomainKeyReport>),
+    #[cfg(feature = "dns-resolvers")]
     Dmarc(Arc<Dmarc>),
     Atps(Arc<Atps>),
+    #[cfg(feature = "dns-resolvers")]
     MtaSts(Arc<MtaSts>),
+    #[cfg(feature = "dns-resolvers")]
     TlsRpt(Arc<TlsRpt>),
     Error(Error),
 }
@@ -158,6 +173,7 @@ pub struct SpfOutput {
     explanation: Option<String>,
 }
 
+#[cfg(feature = "dns-resolvers")]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DmarcOutput {
     spf_result: DmarcResult,
@@ -167,6 +183,7 @@ pub struct DmarcOutput {
     record: Option<Arc<Dmarc>>,
 }
 
+#[cfg(feature = "dns-resolvers")]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DmarcResult {
     Pass,
@@ -176,12 +193,14 @@ pub enum DmarcResult {
     None,
 }
 
+#[cfg(feature = "dns-resolvers")]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IprevOutput {
     pub result: IprevResult,
     pub ptr: Option<Arc<Vec<String>>>,
 }
 
+#[cfg(feature = "dns-resolvers")]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum IprevResult {
     Pass,
@@ -215,7 +234,9 @@ pub enum Error {
     IncompatibleAlgorithms,
     SignatureExpired,
     SignatureLength,
+    #[cfg(feature = "dns-resolvers")]
     DnsError(String),
+    #[cfg(feature = "dns-resolvers")]
     DnsRecordNotFound(ResponseCode),
     ArcChainTooLong,
     ArcInvalidInstance(u32),
@@ -267,7 +288,9 @@ impl Display for Error {
             Error::ArcBrokenChain => write!(f, "Broken or missing ARC chain"),
             Error::ArcChainTooLong => write!(f, "Too many ARC headers"),
             Error::InvalidRecordType => write!(f, "Invalid record"),
+            #[cfg(feature = "dns-resolvers")]
             Error::DnsError(err) => write!(f, "DNS resolution error: {err}"),
+            #[cfg(feature = "dns-resolvers")]
             Error::DnsRecordNotFound(code) => write!(f, "DNS record not found: {code}"),
             Error::NotAligned => write!(f, "Policy not aligned"),
         }
@@ -288,6 +311,7 @@ impl Display for SpfResult {
     }
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl Display for IprevResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -313,6 +337,7 @@ impl Display for DkimResult {
     }
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl Display for DmarcResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -331,6 +356,7 @@ impl From<io::Error> for Error {
     }
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl From<ProtoError> for Error {
     fn from(err: ProtoError) -> Self {
         Error::DnsError(err.to_string())
@@ -370,16 +396,17 @@ thread_local!(static COUNTER: Cell<u64>  = const { Cell::new(0) });
 pub(crate) fn is_within_pct(pct: u8) -> bool {
     pct == 100
         || COUNTER.with(|c| {
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0)
-                .wrapping_add(c.replace(c.get() + 1))
-                .wrapping_mul(11400714819323198485u64)
-        }) % 100
-            < pct as u64
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+            .wrapping_add(c.replace(c.get() + 1))
+            .wrapping_mul(11400714819323198485u64)
+    }) % 100
+        < pct as u64
 }
 
+#[cfg(feature = "dns-resolvers")]
 impl Clone for Resolver {
     fn clone(&self) -> Self {
         Self {
